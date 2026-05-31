@@ -1,0 +1,62 @@
+{
+  "exchange_rate_usd_to_cny": 6.88,
+  "liquid_funds": [
+    {
+      "date": "2026-05-28",
+      "token": "AMATon",
+      "stock": "AMAT",
+      "sold_quantity": 0.31995,
+      "received_usdt": 145.095845,
+      "received_cny": 998.26,
+      "cost_of_sold_usdt": 141.75,
+      "cost_of_sold_cny": 975.24,
+      "profit_usdt": 3.345845,
+      "profit_cny": 23.02,
+      "profit_pct": 2.36,
+      "platform": "1inch Fusion",
+      "note": "AMAT减仓，保留少量底仓"
+    }
+  ],
+  "holdings": [
+    {
+      "token_name": "GOOGLon",
+      "underlying_stock": "GOOGL",
+      "stock_name": "Google/Alphabet",
+      "quantity": 0.36277,
+      "buy_date": "2026-05-11",
+      "cost_usdt": 145.0,
+      "cost_per_token_usdt": 399.70,
+      "network": "BSC"
+    },
+    {
+      "token_name": "MUon",
+      "underlying_stock": "MU",
+      "stock_name": "Micron Technology",
+      "quantity": 0.2215,
+      "buy_date": "2026-05-06",
+      "cost_usdt": 150.91,
+      "cost_per_token_usdt": 681.30,
+      "network": "BSC"
+    },
+    {
+      "token_name": "AMDOn",
+      "underlying_stock": "AMD",
+      "stock_name": "AMD",
+      "quantity": 1.11875,
+      "buy_date": "2026-05-04",
+      "cost_usdt": 397.93,
+      "cost_per_token_usdt": 355.71,
+      "network": "BSC"
+    },
+    {
+      "token_name": "AMATon",
+      "underlying_stock": "AMAT",
+      "stock_name": "Applied Materials",
+      "quantity": 0.0076768,
+      "buy_date": "2026-05-12",
+      "cost_usdt": 3.40,
+      "cost_per_token_usdt": 442.98,
+      "network": "BSC"
+    }
+  ]
+}
