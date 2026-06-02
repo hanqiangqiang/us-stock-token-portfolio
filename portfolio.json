@@ -57,6 +57,16 @@
       "cost_usdt": 3.40,
       "cost_per_token_usdt": 442.98,
       "network": "BSC"
+    },
+    {
+      "token_name": "MCDon",
+      "underlying_stock": "MCD",
+      "stock_name": "McDonald's",
+      "quantity": 0.51978,
+      "buy_date": "2026-06-02",
+      "cost_usdt": 145.095845,
+      "cost_per_token_usdt": 278.75219,
+      "network": "BSC"
     }
   ]
 }

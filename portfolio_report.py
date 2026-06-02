@@ -35,6 +35,7 @@ TOKEN_STOCK_MAP = {
     "MUon": "MU",
     "AMDOn": "AMD",
     "AMATon": "AMAT",
+    "MCDon": "MCD",
 }
 
 # 代币 -> 中文名映射
@@ -43,6 +44,7 @@ TOKEN_CN_NAMES = {
     "MUon": "美光科技",
     "AMDOn": "AMD",
     "AMATon": "应用材料",
+    "MCDon": "麦当劳",
 }
 
 # ============================================================
