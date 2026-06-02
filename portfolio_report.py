@@ -455,6 +455,158 @@ def generate_charts(details, summary, charts_dir):
     plt.close()
     print(f"📊 当日盈亏图已保存: {daily_bar_path}")
 
+    # --- 图3.5: 整体持仓每日净收益走势图 ---
+    print("   正在计算整体持仓每日净收益...")
+    
+    # 收集所有股票的历史数据
+    all_stock_histories = {}
+    earliest_date = None
+    
+    for d in details:
+        stock = d['stock']
+        buy_date = d['buy_date']
+        cost_price = d['cost_per_token_usd']
+        quantity = d['quantity']
+        
+        if earliest_date is None or buy_date < earliest_date:
+            earliest_date = buy_date
+        
+        # 获取历史数据
+        today_str = datetime.now().strftime("%Y-%m-%d")
+        history = get_stock_history_from_alpha_vantage(stock, buy_date, today_str)
+        
+        if history and len(history) > 0:
+            # 强制最后一个价格为当前价格
+            history[-1] = (history[-1][0], d['current_price'])
+            all_stock_histories[stock] = {
+                'history': history,
+                'cost_price': cost_price,
+                'quantity': quantity,
+                'buy_date': buy_date,
+            }
+    
+    if all_stock_histories:
+        # 构建日期序列（从最早买入日到今天）
+        start_dt = datetime.strptime(earliest_date, "%Y-%m-%d")
+        end_dt = datetime.now()
+        date_range = []
+        current_dt = start_dt
+        while current_dt <= end_dt:
+            date_range.append(current_dt.strftime("%Y-%m-%d"))
+            current_dt += timedelta(days=1)
+        
+        # 计算每天的持仓总市值和总成本
+        daily_total_values = []
+        daily_total_costs = []
+        daily_net_pnl = []
+        valid_dates = []
+        
+        for date_str in date_range:
+            total_value = 0
+            total_cost = 0
+            has_data = False
+            
+            for stock, info in all_stock_histories.items():
+                buy_date = info['buy_date']
+                if date_str < buy_date:
+                    continue  # 还没买入
+                
+                # 找到该日期或之前最近的收盘价
+                price = None
+                for h_date, h_price in info['history']:
+                    if h_date <= date_str:
+                        price = h_price
+                    else:
+                        break
+                
+                if price is not None:
+                    total_value += price * info['quantity'] * USD_TO_CNY
+                    total_cost += info['cost_price'] * info['quantity'] * USD_TO_CNY
+                    has_data = True
+            
+            if has_data:
+                valid_dates.append(date_str)
+                daily_total_values.append(total_value)
+                daily_total_costs.append(total_cost)
+                daily_net_pnl.append(total_value - total_cost)
+        
+        if len(valid_dates) > 1:
+            fig, (ax_val, ax_pnl) = plt.subplots(2, 1, figsize=(12, 10), sharex=True,
+                                                    gridspec_kw={'height_ratios': [1.2, 1], 'hspace': 0.12})
+            
+            dates_dt = [datetime.strptime(d, "%Y-%m-%d") for d in valid_dates]
+            
+            # 上层：总市值 vs 总成本
+            ax_val.fill_between(dates_dt, daily_total_values, alpha=0.15, color='#3b82f6')
+            ax_val.plot(dates_dt, daily_total_values, linewidth=2.5, color='#3b82f6', label='Total Value', zorder=3)
+            ax_val.plot(dates_dt, daily_total_costs, linewidth=2, color='#f59e0b', linestyle='--', label='Total Cost', zorder=2)
+            ax_val.set_ylabel('Value (CNY)', fontsize=13, fontweight='bold')
+            ax_val.legend(loc='upper left', fontsize=12, framealpha=0.95)
+            ax_val.grid(True, alpha=0.3, linestyle='-', linewidth=0.8)
+            ax_val.spines['top'].set_visible(False)
+            ax_val.spines['right'].set_visible(False)
+            ax_val.tick_params(axis='y', labelsize=11)
+            
+            # 当前市值标注
+            current_val = daily_total_values[-1]
+            current_cost = daily_total_costs[-1]
+            ax_val.scatter([dates_dt[-1]], [current_val], color='#3b82f6', s=200, zorder=5, edgecolor='white', linewidth=2)
+            info_text = f'Now: ¥{current_val:,.0f}\nCost: ¥{current_cost:,.0f}'
+            ax_val.text(0.97, 0.97, info_text, transform=ax_val.transAxes, fontsize=12,
+                       verticalalignment='top', horizontalalignment='right',
+                       bbox=dict(boxstyle='round,pad=0.5', facecolor='white', alpha=0.95, edgecolor='#d1d5db', linewidth=2),
+                       fontweight='bold')
+            ax_val.set_title('Portfolio Total Value vs Cost', fontsize=16, fontweight='bold', pad=15, loc='left')
+            
+            # 下层：每日净收益
+            bar_colors_net = ['#22c55e' if pnl >= 0 else '#ef4444' for pnl in daily_net_pnl]
+            ax_pnl.fill_between(dates_dt, daily_net_pnl, alpha=0.3, 
+                               where=[p >= 0 for p in daily_net_pnl], color='#22c55e', interpolate=True)
+            ax_pnl.fill_between(dates_dt, daily_net_pnl, alpha=0.3, 
+                               where=[p < 0 for p in daily_net_pnl], color='#ef4444', interpolate=True)
+            ax_pnl.plot(dates_dt, daily_net_pnl, linewidth=2, color='#1f2937', zorder=3)
+            ax_pnl.axhline(y=0, color='#374151', linewidth=2.5, linestyle='-', zorder=2)
+            ax_pnl.set_ylabel('Net P&L (CNY)', fontsize=13, fontweight='bold')
+            ax_pnl.set_xlabel('Date', fontsize=13)
+            ax_pnl.grid(True, alpha=0.3, linestyle='-', linewidth=0.8, axis='y')
+            ax_pnl.spines['top'].set_visible(False)
+            ax_pnl.spines['right'].set_visible(False)
+            ax_pnl.tick_params(axis='both', labelsize=11)
+            
+            # 当前净收益标注
+            current_pnl = daily_net_pnl[-1]
+            pnl_color = '#22c55e' if current_pnl >= 0 else '#ef4444'
+            ax_pnl.scatter([dates_dt[-1]], [current_pnl], color=pnl_color, s=200, zorder=5, edgecolor='white', linewidth=2)
+            pnl_sign = '+' if current_pnl >= 0 else ''
+            ax_pnl.annotate(f'Net P&L: {pnl_sign}¥{current_pnl:,.0f}', 
+                           (dates_dt[-1], current_pnl), 
+                           textcoords="offset points", xytext=(15, 0 if current_pnl >= 0 else -20), 
+                           fontsize=13, ha='left', fontweight='bold', color=pnl_color,
+                           bbox=dict(boxstyle='round,pad=0.3', facecolor='white', alpha=0.9, edgecolor=pnl_color, linewidth=2))
+            
+            # X轴日期格式
+            ax_pnl.xaxis.set_major_formatter(plt.matplotlib.dates.DateFormatter('%m/%d'))
+            ax_pnl.xaxis.set_major_locator(plt.matplotlib.dates.DayLocator(interval=max(1, len(dates_dt)//6)))
+            for label in ax_pnl.get_xticklabels():
+                label.set_rotation(30)
+                label.set_horizontalalignment('right')
+                label.set_fontsize(11)
+            
+            ax_pnl.set_title('Daily Net P&L (All Holdings)', fontsize=16, fontweight='bold', pad=15, loc='left')
+            
+            fig.suptitle('Portfolio Performance Overview', fontsize=18, fontweight='bold', y=0.98)
+            plt.tight_layout(rect=[0, 0, 1, 0.96])
+            net_pnl_path = os.path.join(charts_dir, 'net_pnl_trend.png')
+            plt.savefig(net_pnl_path, dpi=150, bbox_inches='tight', facecolor='white')
+            plt.close()
+            print(f"📊 整体持仓净收益图已保存: {net_pnl_path}")
+        else:
+            net_pnl_path = None
+            print("   ⚠️ 历史数据不足，跳过整体净收益图")
+    else:
+        net_pnl_path = None
+        print("   ⚠️ 无历史数据，跳过整体净收益图")
+
     # --- 图4: 各股历史走势图（上下双层卡片结构 - 高清大图）---
     history_paths = []
     
@@ -584,6 +736,7 @@ def generate_charts(details, summary, charts_dir):
         'pie': pie_path,
         'pnl_bar': pnl_bar_path,
         'daily_bar': daily_bar_path,
+        'net_pnl': net_pnl_path,
         'history': history_paths,
     }
 
@@ -822,6 +975,15 @@ def generate_pdf(summary, details, charts, report_path, is_trading_day=True, las
             ('RIGHTPADDING', (0, 0), (-1, -1), 2),
         ]))
         story.append(chart_table)
+        story.append(Spacer(1, 20))
+
+    # 整体持仓净收益走势图
+    if charts.get('net_pnl') and os.path.exists(charts['net_pnl']):
+        story.append(Paragraph("整体持仓表现", styles['h1']))
+        story.append(Paragraph("上方：总市值 vs 总成本 | 下方：每日净收益走势", styles['body']))
+        story.append(HRFlowable(width="30%", thickness=1.5, color=ACCENT, spaceAfter=12))
+        img = Image(charts['net_pnl'], width=CONTENT_WIDTH*0.95, height=CONTENT_WIDTH*0.8)
+        story.append(img)
         story.append(Spacer(1, 20))
 
     # ========== 各股持仓走势（每只股票独立页面）==========
