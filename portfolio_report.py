@@ -558,11 +558,15 @@ def generate_charts(details, summary, charts_dir):
                        fontweight='bold')
             ax_val.set_title('Portfolio Total Value vs Cost', fontsize=16, fontweight='bold', pad=15, loc='left')
             
-            # 下层：每日净收益柱状图
-            bar_colors_net = ['#22c55e' if pnl >= 0 else '#ef4444' for pnl in daily_net_pnl]
-            ax_pnl.bar(dates_dt, daily_net_pnl, color=bar_colors_net, alpha=0.8, width=0.8, edgecolor='white', linewidth=0.5)
+            # 下层：每日净收益（当天市值 - 前一天市值）
+            daily_changes = [0]  # 第一天没有变化，设为0
+            for i in range(1, len(daily_total_values)):
+                daily_changes.append(daily_total_values[i] - daily_total_values[i-1])
+            
+            bar_colors_net = ['#22c55e' if pnl >= 0 else '#ef4444' for pnl in daily_changes]
+            ax_pnl.bar(dates_dt, daily_changes, color=bar_colors_net, alpha=0.8, width=0.8, edgecolor='white', linewidth=0.5)
             ax_pnl.axhline(y=0, color='#1f2937', linewidth=3, linestyle='-', zorder=2)
-            ax_pnl.set_ylabel('Net P&L (CNY)', fontsize=13, fontweight='bold')
+            ax_pnl.set_ylabel('Daily P&L (CNY)', fontsize=13, fontweight='bold')
             ax_pnl.set_xlabel('Date', fontsize=13)
             ax_pnl.grid(True, alpha=0.3, linestyle='-', linewidth=0.8, axis='y')
             ax_pnl.spines['top'].set_visible(False)
@@ -570,21 +574,23 @@ def generate_charts(details, summary, charts_dir):
             ax_pnl.tick_params(axis='both', labelsize=11)
             
             # 每日数据标注
-            for i, (dt, val) in enumerate(zip(dates_dt, daily_net_pnl)):
+            for i, (dt, val) in enumerate(zip(dates_dt, daily_changes)):
+                if i == 0:
+                    continue  # 第一天无变化，跳过标注
                 color = '#22c55e' if val >= 0 else '#ef4444'
                 offset = 15 if val >= 0 else -15
                 ax_pnl.text(dt, val + offset, f'{val:+.0f}', ha='center', 
                            va='bottom' if val >= 0 else 'top',
                            fontsize=8, fontweight='bold', color=color)
             
-            # 当前净收益标注（大标签）
-            current_pnl = daily_net_pnl[-1]
-            pnl_color = '#22c55e' if current_pnl >= 0 else '#ef4444'
-            ax_pnl.scatter([dates_dt[-1]], [current_pnl], color=pnl_color, s=200, zorder=5, edgecolor='white', linewidth=2)
-            pnl_sign = '+' if current_pnl >= 0 else ''
-            ax_pnl.annotate(f'Net P&L: {pnl_sign}¥{current_pnl:,.0f}', 
-                           (dates_dt[-1], current_pnl), 
-                           textcoords="offset points", xytext=(15, 0 if current_pnl >= 0 else -20), 
+            # 最后一天净收益大标签
+            current_change = daily_changes[-1]
+            pnl_color = '#22c55e' if current_change >= 0 else '#ef4444'
+            ax_pnl.scatter([dates_dt[-1]], [current_change], color=pnl_color, s=200, zorder=5, edgecolor='white', linewidth=2)
+            pnl_sign = '+' if current_change >= 0 else ''
+            ax_pnl.annotate(f'Today: {pnl_sign}¥{current_change:,.0f}', 
+                           (dates_dt[-1], current_change), 
+                           textcoords="offset points", xytext=(15, 0 if current_change >= 0 else -20), 
                            fontsize=13, ha='left', fontweight='bold', color=pnl_color,
                            bbox=dict(boxstyle='round,pad=0.3', facecolor='white', alpha=0.9, edgecolor=pnl_color, linewidth=2))
             
@@ -596,7 +602,7 @@ def generate_charts(details, summary, charts_dir):
                 label.set_horizontalalignment('right')
                 label.set_fontsize(11)
             
-            ax_pnl.set_title('Daily Net P&L (All Holdings)', fontsize=16, fontweight='bold', pad=15, loc='left')
+            ax_pnl.set_title('Daily Net P&L (Day-over-Day Change)', fontsize=16, fontweight='bold', pad=15, loc='left')
             
             fig.suptitle('Portfolio Performance Overview', fontsize=18, fontweight='bold', y=0.98)
             plt.tight_layout(rect=[0, 0, 1, 0.96])
