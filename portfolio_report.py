@@ -558,14 +558,10 @@ def generate_charts(details, summary, charts_dir):
                        fontweight='bold')
             ax_val.set_title('Portfolio Total Value vs Cost', fontsize=16, fontweight='bold', pad=15, loc='left')
             
-            # 下层：每日净收益
+            # 下层：每日净收益柱状图
             bar_colors_net = ['#22c55e' if pnl >= 0 else '#ef4444' for pnl in daily_net_pnl]
-            ax_pnl.fill_between(dates_dt, daily_net_pnl, alpha=0.3, 
-                               where=[p >= 0 for p in daily_net_pnl], color='#22c55e', interpolate=True)
-            ax_pnl.fill_between(dates_dt, daily_net_pnl, alpha=0.3, 
-                               where=[p < 0 for p in daily_net_pnl], color='#ef4444', interpolate=True)
-            ax_pnl.plot(dates_dt, daily_net_pnl, linewidth=2, color='#1f2937', zorder=3)
-            ax_pnl.axhline(y=0, color='#374151', linewidth=2.5, linestyle='-', zorder=2)
+            ax_pnl.bar(dates_dt, daily_net_pnl, color=bar_colors_net, alpha=0.8, width=0.8, edgecolor='white', linewidth=0.5)
+            ax_pnl.axhline(y=0, color='#1f2937', linewidth=3, linestyle='-', zorder=2)
             ax_pnl.set_ylabel('Net P&L (CNY)', fontsize=13, fontweight='bold')
             ax_pnl.set_xlabel('Date', fontsize=13)
             ax_pnl.grid(True, alpha=0.3, linestyle='-', linewidth=0.8, axis='y')
@@ -573,7 +569,15 @@ def generate_charts(details, summary, charts_dir):
             ax_pnl.spines['right'].set_visible(False)
             ax_pnl.tick_params(axis='both', labelsize=11)
             
-            # 当前净收益标注
+            # 每日数据标注
+            for i, (dt, val) in enumerate(zip(dates_dt, daily_net_pnl)):
+                color = '#22c55e' if val >= 0 else '#ef4444'
+                offset = 15 if val >= 0 else -15
+                ax_pnl.text(dt, val + offset, f'{val:+.0f}', ha='center', 
+                           va='bottom' if val >= 0 else 'top',
+                           fontsize=8, fontweight='bold', color=color)
+            
+            # 当前净收益标注（大标签）
             current_pnl = daily_net_pnl[-1]
             pnl_color = '#22c55e' if current_pnl >= 0 else '#ef4444'
             ax_pnl.scatter([dates_dt[-1]], [current_pnl], color=pnl_color, s=200, zorder=5, edgecolor='white', linewidth=2)
